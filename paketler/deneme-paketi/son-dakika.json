@@ -1,0 +1,20 @@
+{
+  "v": 1,
+  "video": "son-dakika.mp4",
+  "title": "Son Dakika!",
+  "regions": [
+    {
+      "start": 0.75,
+      "end": 3.7
+    },
+    {
+      "start": 4.15,
+      "end": 7.7
+    }
+  ],
+  "cut": null,
+  "duration": 8.5,
+  "beepHz": 520,
+  "gateDb": null,
+  "micLatency": 0.06
+}

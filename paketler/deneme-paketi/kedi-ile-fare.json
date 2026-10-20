@@ -1,0 +1,24 @@
+{
+  "v": 1,
+  "video": "kedi-ile-fare.mp4",
+  "title": "Kedi ile Fare",
+  "regions": [
+    {
+      "start": 0.35,
+      "end": 2.65
+    },
+    {
+      "start": 3.35,
+      "end": 5.25
+    },
+    {
+      "start": 5.45,
+      "end": 8.2
+    }
+  ],
+  "cut": null,
+  "duration": 9.0,
+  "beepHz": 520,
+  "gateDb": null,
+  "micLatency": 0.06
+}

@@ -1,0 +1,24 @@
+{
+  "v": 1,
+  "video": "dinozor.mp4",
+  "title": "Dinozor ve Kuş",
+  "regions": [
+    {
+      "start": 0.45,
+      "end": 3.0
+    },
+    {
+      "start": 3.25,
+      "end": 5.0
+    },
+    {
+      "start": 5.15,
+      "end": 7.4
+    }
+  ],
+  "cut": null,
+  "duration": 8.0,
+  "beepHz": 520,
+  "gateDb": null,
+  "micLatency": 0.06
+}
