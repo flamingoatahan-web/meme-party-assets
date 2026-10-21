@@ -1,0 +1,18 @@
+{
+  "ad": "Deneme Sesleri",
+  "emoji": "🔊",
+  "aciklama": "Test için yapay komik sesler",
+  "sira": 99,
+  "sesler": {
+    "boing": "Boing",
+    "kaydirak-duduk": "Kaydırak Düdüğü",
+    "ordek": "Ördek",
+    "siren": "Siren",
+    "uzayli": "Uzaylı",
+    "pirt": "Pırt",
+    "lazer": "Lazer",
+    "davul": "Davul",
+    "yuhu": "Yuhu",
+    "kahkaha": "Kahkaha"
+  }
+}
