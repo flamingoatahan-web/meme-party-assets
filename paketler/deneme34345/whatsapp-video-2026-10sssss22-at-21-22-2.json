@@ -1,0 +1,20 @@
+{
+  "v": 1,
+  "video": "whatsapp-video-2026-10sssss22-at-21-22-2.mp4",
+  "title": "WhatsApp Video 2026-10sssss22 at 21.22.29",
+  "regions": [
+    {
+      "start": 1.4,
+      "end": 2.8
+    },
+    {
+      "start": 7.71,
+      "end": 9.3
+    }
+  ],
+  "cut": null,
+  "duration": 9.6,
+  "beepHz": 520,
+  "gateDb": null,
+  "micLatency": 0.06
+}
