@@ -33,7 +33,7 @@ jobs:
 
       - name: ffmpeg
         if: steps.bak.outputs.var == '1'
-        run: which ffmpeg || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
+        uses: FedericoCarboni/setup-ffmpeg@v3
 
       - name: Klipleri işle
         if: steps.bak.outputs.var == '1'
