@@ -1,0 +1,40 @@
+# NE DİYOR?! KLİPLERİ: "Meme Party - Dublaj" aracının "Oyuna gönder" tuşu klibi oyunun veritabanına bırakır
+# (onayli/klipgelen/<id>). Bu iş birkaç dakikada bir bakar: gelen klibi küçültür (en çok 1280x720, 30 fps, H.264),
+# kesilen kısmı keser, paketler/<paket>/<klip>.mp4 + .json olarak buraya koyar ve gelen kutusunu boşaltır.
+# Oyun yeni klibi kendisi bulur.
+name: Klip işle
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: klip-isle
+  cancel-in-progress: false
+
+jobs:
+  isle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Gelen klip var mı?
+        id: bak
+        run: |
+          n=$(curl -s --max-time 20 "https://meme-party-45451-default-rtdb.europe-west1.firebasedatabase.app/onayli/klipgelen.json?shallow=true" || echo null)
+          echo "gelen: $n"
+          if [ -z "$n" ] || [ "$n" = "null" ]; then echo "var=0" >> "$GITHUB_OUTPUT"; else echo "var=1" >> "$GITHUB_OUTPUT"; fi
+
+      - uses: actions/checkout@v4
+        if: steps.bak.outputs.var == '1'
+
+      - name: ffmpeg
+        if: steps.bak.outputs.var == '1'
+        run: which ffmpeg || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)
+
+      - name: Klipleri işle
+        if: steps.bak.outputs.var == '1'
+        run: node .github/scripts/klip-isle.mjs
