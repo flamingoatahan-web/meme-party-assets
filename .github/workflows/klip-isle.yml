@@ -24,9 +24,11 @@ jobs:
       - name: Gelen klip var mı?
         id: bak
         run: |
-          n=$(curl -s --max-time 20 "https://meme-party-45451-default-rtdb.europe-west1.firebasedatabase.app/onayli/klipgelen.json?shallow=true" || echo null)
-          echo "gelen: $n"
-          if [ -z "$n" ] || [ "$n" = "null" ]; then echo "var=0" >> "$GITHUB_OUTPUT"; else echo "var=1" >> "$GITHUB_OUTPUT"; fi
+          DB=https://meme-party-45451-default-rtdb.europe-west1.firebasedatabase.app
+          n=$(curl -s --max-time 20 "$DB/onayli/klipgelen.json?shallow=true" || echo null)
+          m=$(curl -s --max-time 20 "$DB/onayli/klipislem.json?shallow=true" || echo null)
+          echo "gelen: $n · paket işleri: $m"
+          if { [ -z "$n" ] || [ "$n" = "null" ]; } && { [ -z "$m" ] || [ "$m" = "null" ]; }; then echo "var=0" >> "$GITHUB_OUTPUT"; else echo "var=1" >> "$GITHUB_OUTPUT"; fi
 
       - uses: actions/checkout@v4
         if: steps.bak.outputs.var == '1'

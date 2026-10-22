@@ -165,13 +165,91 @@ function git(args) {
   return run('git', args).trim();
 }
 
+// ---- the pack manager of the Dublaj tool: onayli/klipislem/<id> = { tur: 'tasi' | 'sil', paket, klip, hedef, hedefAd, emoji }
+const VIDEO_RE = /\.(mp4|m4v|webm|mov)$/i;
+/** the files of a clip in a pack (its video and its file) */
+function klipDosyalari(dir, klip) {
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir).filter((f) => f !== 'paket.json' && f.replace(/\.[^.]+$/, '') === klip);
+}
+/** a pack without any video left disappears (its paket.json too) */
+function bosPaketSil(dir) {
+  if (!fs.existsSync(dir)) return;
+  const left = fs.readdirSync(dir);
+  if (!left.some((f) => VIDEO_RE.test(f))) {
+    for (const f of left) git(['rm', '-q', '-f', path.join(dir, f)]);
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+function paketIsleri(ops) {
+  const out = [];
+  for (const [id, op] of Object.entries(ops).sort((a, b) => num(a[1]?.t, 0) - num(b[1]?.t, 0))) {
+    try {
+      if (!op || typeof op !== 'object') throw new Error('boş iş');
+      const kaynak = path.join('paketler', String(op.paket || ''));
+      const klip = String(op.klip || '');
+      if (!op.paket || !klip || String(op.paket).includes('/') || klip.includes('/')) throw new Error('eksik bilgi');
+      const files = klipDosyalari(kaynak, klip);
+      if (!files.length) throw new Error('klip bulunamadı');
+      if (op.tur === 'sil') {
+        for (const f of files) git(['rm', '-q', '-f', path.join(kaynak, f)]);
+        bosPaketSil(kaynak);
+        out.push({ id, ok: true, yazi: `${op.paket}/${klip} silindi` });
+        continue;
+      }
+      if (op.tur !== 'tasi') throw new Error('bilinmeyen iş');
+      const hedef = slug(op.hedef || op.hedefAd, 'yeni-paket');
+      if (hedef === op.paket) {
+        out.push({ id, ok: false, yazi: 'aynı paket' });
+        continue;
+      }
+      const dir = path.join('paketler', hedef);
+      fs.mkdirSync(dir, { recursive: true });
+      const meta = path.join(dir, 'paket.json');
+      if (!fs.existsSync(meta)) {
+        const ad = String(op.hedefAd || op.hedef || hedef).trim().slice(0, 40) || hedef;
+        fs.writeFileSync(meta, JSON.stringify({ ad, emoji: String(op.emoji || '🎬').slice(0, 8), aciklama: '', sira: 50 }, null, 2) + '\n');
+        git(['add', meta]);
+      }
+      let name = klip;
+      for (let k = 2; files.some((f) => fs.existsSync(path.join(dir, name + f.slice(klip.length)))); k++) name = `${klip}-${k}`;
+      for (const f of files) {
+        const to = path.join(dir, name + f.slice(klip.length));
+        git(['mv', path.join(kaynak, f), to]);
+        if (f.toLowerCase().endsWith('.json') && name !== klip) {
+          try {
+            const j = JSON.parse(fs.readFileSync(to, 'utf8'));
+            const v = files.find((x) => VIDEO_RE.test(x));
+            if (v) j.video = name + v.slice(klip.length);
+            fs.writeFileSync(to, JSON.stringify(j, null, 2) + '\n');
+            git(['add', to]);
+          } catch {
+            // the file stays as it was
+          }
+        }
+      }
+      bosPaketSil(kaynak);
+      out.push({ id, ok: true, yazi: `${op.paket}/${klip} -> ${hedef}` });
+    } catch (e) {
+      out.push({ id, ok: false, yazi: String(e?.message || e).slice(0, 120) });
+    }
+    log(`  iş ${id}: ${out[out.length - 1].yazi}`);
+  }
+  return out;
+}
+async function islemBitti(o) {
+  await durumYaz(o.id, o.ok ? { durum: 'tamam', yol: o.yazi } : { durum: 'hata', mesaj: o.yazi });
+  await izinle(`klipislem_${o.id}`, () => del(`onayli/klipislem/${o.id}`)).catch((e) => log(`  (iş silinemedi: ${e.message})`));
+}
+
 async function main() {
   const ids = Object.keys((await get('onayli/klipgelen', '?shallow=true')) || {});
-  if (!ids.length) {
-    log('Gelen klip yok.');
+  const ops = (await get('onayli/klipislem')) || {};
+  if (!ids.length && !Object.keys(ops).length) {
+    log('Gelen klip ve paket işi yok.');
     return;
   }
-  log(`Gelen: ${ids.join(', ')}`);
+  log(`Gelen: ${ids.join(', ') || '-'} · Paket işleri: ${Object.keys(ops).join(', ') || '-'}`);
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'klip-'));
   const done = [];
   for (const id of ids) {
@@ -246,11 +324,21 @@ async function main() {
     }
   }
   fs.rmSync(tmpDir, { recursive: true, force: true });
-  if (!done.length) return;
+  const opsDone = paketIsleri(ops);
+  if (!done.length && !opsDone.some((o) => o.ok)) {
+    for (const o of opsDone) await islemBitti(o);
+    return;
+  }
 
   git(['config', 'user.name', 'Meme Party Klip Botu']);
   git(['config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com']);
-  const msg = done.length === 1 ? `Yeni klip: ${done[0].yol}` : `Yeni klipler: ${done.map((d) => d.yol).join(', ')}`;
+  const msg = [
+    done.length ? `Yeni klip: ${done.map((d) => d.yol).join(', ')}` : '',
+    opsDone.some((o) => o.ok) ? `Paket düzeni: ${opsDone.filter((o) => o.ok).map((o) => o.yazi).join(', ')}` : '',
+  ]
+    .filter(Boolean)
+    .join(' · ')
+    .slice(0, 300);
   git(['commit', '-m', msg]);
   if (!NO_PUSH) {
     for (let i = 0; ; i++) {
@@ -268,6 +356,7 @@ async function main() {
     await durumYaz(d.id, { durum: 'tamam', yol: d.yol, kb: d.kb });
     await gelenSil(d.id);
   }
+  for (const o of opsDone) await islemBitti(o);
   log(`\nBitti: ${done.map((d) => d.yol).join(', ')}`);
 }
 
