@@ -215,8 +215,8 @@ async function main() {
       fs.writeFileSync(inFile, data);
 
       // where it goes
-      let paket = slug(bilgi.paket || bilgi.paketAd, 'yeni-paket');
-      if (/^deneme/.test(paket)) paket = `yeni-${paket}`; // "deneme..." packs are only the TEST copy's
+      // a pack whose name starts with "deneme" stays a test pack: only the TEST copy plays it
+      const paket = slug(bilgi.paket || bilgi.paketAd, 'yeni-paket');
       const dir = path.join('paketler', paket);
       fs.mkdirSync(dir, { recursive: true });
       const metaFile = path.join(dir, 'paket.json');
